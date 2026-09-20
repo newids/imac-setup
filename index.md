@@ -1,5 +1,5 @@
 ---
-title: mac-setup
+title: imac-setup
 ---
 
 # iMac 키보드 실습 환경 자동 설정
@@ -21,25 +21,25 @@ title: mac-setup
 두벌식만:
 
 ```sh
-curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh
+curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh
 ```
 
 두벌식 + 세벌식 최종:
 
 ```sh
-curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh -s -- han3final
+curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- han3final
 ```
 
 여러 배열을 한꺼번에:
 
 ```sh
-curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh -s -- han3final han390
+curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- han3final han390
 ```
 
 배열 이름 확인:
 
 ```sh
-curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh -s -- --list
+curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- --list
 ```
 
 - 두벌식(`han2`)은 항상 포함됩니다. 로그인 에이전트가 두벌식을 강제로 켜기 때문에, 목록에 없으면 로그인 때마다 확인 창이 뜹니다.
@@ -141,4 +141,4 @@ System Settings 가 쓰는 위치와 형식에 그대로 맞추고, 즉시 적�
 ## 소스
 
 - 스크립트: [iMac-setup.sh](iMac-setup.sh)
-- 저장소: [github.com/newids/mac-setup](https://github.com/newids/mac-setup)
+- 저장소: [github.com/newids/imac-setup](https://github.com/newids/imac-setup)

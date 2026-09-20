@@ -12,9 +12,9 @@
 #   3. 텍스트 입력 > 입력 소스                -> 구름 입력기 (두벌식 + 요청한 배열)
 #
 # 사용법:
-#   curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh                    # 두벌식
-#   curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh -s -- han3final    # 세벌식 최종
-#   curl -fsSL https://newids.github.io/mac-setup/iMac-setup.sh | sh -s -- --list       # 배열 목록
+#   curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh                    # 두벌식
+#   curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- han3final    # 세벌식 최종
+#   curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- --list       # 배열 목록
 #
 # Sequoia 에서 설정이 저장되는 곳 (System Settings 가 쓰는 것과 동일하게 맞춘다):
 #   - fn 키 동작:        com.apple.HIToolbox  AppleFnUsageType
