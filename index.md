@@ -90,23 +90,30 @@ curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- --list
 
 ## 확인
 
-- 메뉴 막대 오른쪽 입력 메뉴에 ABC 와 구름 입력기 배열이 보이면 성공입니다.
+- 스크립트 마지막 줄에 `실행 중인 앱과 메뉴 막대에도 반영됨` 이 나와야 합니다. 이 줄이 나오면
+  이미 열려 있던 앱에서도 바로 전환됩니다.
+- 메뉴 막대 오른쪽 입력 메뉴에 ABC 와 구름 입력기 배열이 보이면 성공입니다. 목록에 "구름 로마자"가
+  있으면 안 됩니다.
 - Caps Lock 을 누르면 ABC ↔ 구름 입력기가 바뀝니다. 한글 배열이 둘 이상이면 순서대로 돕니다.
 - 터미널에서 직접 확인:
 
 ```sh
-defaults read com.apple.inputsources AppleEnabledThirdPartyInputSources   # 구름 입력기 목록
+defaults export com.apple.inputsources -                                  # 구름 입력기 목록
 defaults read com.apple.HIToolbox AppleFnUsageType                        # 1 이면 입력 소스 변경
 defaults -currentHost read -g | grep -A4 modifiermapping                  # Caps Lock -> fn (정수 값)
 ```
+
+`plutil -p ~/Library/Preferences/com.apple.inputsources.plist` 는 아직 디스크에 내려가지 않은 옛 내용을
+보여 줄 수 있습니다. 확인은 위처럼 `defaults export` 로 하세요.
 
 ## 문제 해결
 
 | 증상 | 조치 |
 |---|---|
 | 설정 화면 입력 소스 목록에 같은 구름 항목이 여러 개 | 예전 방식으로 `com.apple.HIToolbox` 에 들어간 항목이 원인. 스크립트를 다시 실행하면 정리됩니다 |
-| 로마자 항목이 있고 영문이 이상하게 입력됨 | 스크립트를 다시 실행하면 로마자가 빠집니다 |
+| 입력 소스 목록에 "구름 로마자"가 있고 메뉴 막대에 로마자 아이콘이 뜸 | 로그인 때 macOS 가 자동으로 켠 것입니다. 스크립트를 다시 실행하면 꺼집니다 |
 | Caps Lock 이 여전히 Caps Lock 으로 동작 | 스크립트를 다시 실행하고 "키보드 N대에 즉시 적용" 이 나오는지 확인. 안 나오면 로그아웃 후 다시 로그인 |
+| 입력란 아래 전환 메뉴에 구름이 안 보이고 ABC 만 있음 | 실행 중인 앱에 전파되지 않은 것입니다. 스크립트를 다시 실행하고 마지막 줄에 `실행 중인 앱과 메뉴 막대에도 반영됨` 이 나오는지 확인 |
 | 추가한 배열이 메뉴에 안 보임 | 스크립트를 다시 실행. 그래도 안 되면 로그아웃 후 다시 로그인 |
 | `구름 입력기(Gureum.app)가 설치되어 있지 않습니다` | 관리자에게 설치 요청. 또는 `~/Library/Input Methods/` 에 Gureum.app 을 복사한 뒤 재로그인 |
 | `… 구름 입력기에 없는 배열입니다` | `--list` 로 이름 확인 |
@@ -129,8 +136,10 @@ System Settings 가 쓰는 위치와 형식에 그대로 맞추고, 즉시 적�
 - **fn 키 동작**: `com.apple.HIToolbox` 의 `AppleFnUsageType` 을 1 로 씁니다.
 - **Caps Lock → fn 저장**: ByHost `.GlobalPreferences` 의 `com.apple.keyboard.modifiermapping.<VendorID>-<ProductID>-<CountryCode>` 에 **정수** 값으로 씁니다. 문자열로 저장되면 시스템이 무시합니다. 로그인 때 시스템이 이 값을 읽어 키보드에 적용합니다.
 - **Caps Lock → fn 즉시 적용**: 로그인 때 시스템이 키보드 서비스에 넣는 속성 `HIDKeyboardModifierMappingPairs` 를 지금 바로 넣습니다. 이 속성은 HID 이벤트 시스템의 monitor 클라이언트로만 넣을 수 있어서 `hidutil` 로는 안 되고, JXA(`osascript -l JavaScript`)로 IOKit 함수를 직접 호출합니다. `hidutil` 의 `UserKeyMapping` 으로 Caps Lock 을 fn 으로 바꾸면 키는 바뀌지만 fn 의 "입력 소스 변경" 동작이 일어나지 않습니다.
-- **구름 입력 소스**: Sequoia 는 서드파티 입력기를 `com.apple.inputsources` 의 `AppleEnabledThirdPartyInputSources` 에 저장합니다 (입력기 항목 + 배열 항목). 스크립트는 이 목록을 "구름 입력기 + 두벌식 + 지정한 배열"로 쓰고, 예전 방식으로 `com.apple.HIToolbox` 의 `AppleEnabledInputSources` 에 들어간 구름 항목은 지웁니다 (양쪽에 다 있으면 설정 화면에 중복으로 나타남). 그 다음 입력 소스 변경 알림을 보내고 메뉴 막대 입력 메뉴(TextInputMenuAgent)를 다시 띄웁니다.
-- `TISEnableInputSource` API 는 쓰지 않습니다. 이 API 는 호출한 프로그램 이름으로 "서드파티 입력 방법을 활성화하려고 합니다" 확인 창을 띄웁니다.
+- **구름 입력 소스**: Sequoia 는 서드파티 입력기를 `com.apple.inputsources` 의 `AppleEnabledThirdPartyInputSources` 에 저장합니다 (입력기 항목 + 배열 항목). 스크립트는 이 목록을 "구름 입력기 + 두벌식 + 지정한 배열"로 쓰고, 예전 방식으로 `com.apple.HIToolbox` 의 `AppleEnabledInputSources` 에 들어간 구름 항목은 지웁니다 (양쪽에 다 있으면 설정 화면에 중복으로 나타남).
+- **실행 중인 앱에 전파**: 설정 파일만 고치면 이미 떠 있는 앱과 메뉴 막대는 목록을 다시 읽지 않습니다. 변경 알림을 보내도, TextInputMenuAgent 를 다시 띄워도 마찬가지입니다. 그 상태에서 메뉴로 구름을 고르면 앞 앱이 "켜지지 않은 소스"로 보고 무시합니다. 전파되는 것은 TIS API 호출뿐이라서, 스크립트는 쓰지 않는 구름 배열 하나를 목록에 같이 써 둔 뒤 `TISDisableInputSource` 로 끕니다. 끄는 순간 모든 프로세스가 목록 전체를 다시 읽습니다. 이미 꺼져 있는 배열을 끄면 아무 일도 일어나지 않으므로, 반드시 켜져 있는 것을 끕니다.
+- **구름 로마자 제거**: 구름 입력기에서 기본으로 켜지도록 표시된 배열은 두벌식과 로마자 둘뿐이라, 관리자 에이전트가 구름 입력기를 켜면 macOS 가 로마자까지 같이 켭니다. 로마자는 영문 자판 자리를 ABC 대신 차지해 메뉴 막대에 "로마자"가 뜨고 앱의 입력 소스 전환이 어긋납니다. 스크립트는 이것을 위의 전파용 배열로 쓰면서 끄고, 요청하지 않았는데 켜져 있는 구름 배열이 하나도 남지 않을 때까지 끄기를 되풀이합니다.
+- `TISEnableInputSource` API 는 쓰지 않습니다. 이 API 는 서드파티 배열에 대해 System Settings 밖에서는 조용히 무시되거나, 호출한 프로그램 이름으로 "서드파티 입력 방법을 활성화하려고 합니다" 확인 창을 띄웁니다.
 - 스크립트는 `/bin/sh`(bash 3.2 POSIX 모드)에서 동작하도록 배열과 프로세스 치환을 쓰지 않고, `curl | sh` 로 다운로드가 끊겨도 부분 실행되지 않도록 전체를 `main()` 에 담아 마지막 줄에서 호출합니다.
 
 ## 참고

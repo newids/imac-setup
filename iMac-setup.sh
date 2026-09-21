@@ -10,6 +10,7 @@
 #   1. 키보드 > fn 키를 누를 때 실행할 동작   -> 입력 소스 변경
 #   2. 키보드 단축키 > 보조 키 > Caps Lock 키 -> fn 기능
 #   3. 텍스트 입력 > 입력 소스                -> 구름 입력기 (두벌식 + 요청한 배열)
+#      요청하지 않은 구름 배열, 특히 구름 로마자(system)는 끈다. 3. 입력 소스 절 참고.
 #
 # 사용법:
 #   curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh                    # 두벌식
@@ -22,19 +23,22 @@
 #                        (정수 값. 즉시 적용은 HID 이벤트 시스템에 HIDKeyboardModifierMappingPairs 를 직접 넣는다)
 #   - 구름 입력 소스:    com.apple.inputsources  AppleEnabledThirdPartyInputSources
 #                        (서드파티 입력기는 여기. com.apple.HIToolbox AppleEnabledInputSources 에도
-#                         넣으면 설정 화면에 같은 항목이 여러 개 나타난다)
+#                         넣으면 설정 화면에 같은 항목이 여러 개 나타난다. 파일만 고치면 실행 중인
+#                         앱은 모르므로 TIS API 호출로 전파한다. 3. 입력 소스 절 참고)
 #
 # curl | sh 로 중간에 끊겨도 부분 실행되지 않도록 전체를 main() 에 담고
 # 마지막 줄에서 호출한다. /bin/sh(bash 3.2 POSIX 모드)에서 동작하도록
 # 배열과 프로세스 치환은 쓰지 않는다. 시스템 API 는 swift 대신 JXA(osascript)로
-# 부른다. swift 는 컴파일 지연이 있고, TISEnableInputSource 는 "서드파티 입력
-# 방법을 활성화하려고 합니다" 확인 창을 띄우므로 쓰지 않는다.
+# 부른다. swift 는 컴파일 지연이 있고, TISEnableInputSource 는 서드파티 입력기에 대해
+# System Settings 밖에서는 무시되거나 "서드파티 입력 방법을 활성화하려고 합니다" 확인
+# 창을 띄우므로 쓰지 않는다.
 
 set -u
 
 PB=/usr/libexec/PlistBuddy
 GUREUM_BUNDLE="org.youknowone.inputmethod.Gureum"
 DEFAULT_MODE="han2"                                   # 항상 포함. 로그인 에이전트가 강제 선택하는 배열
+ROMAN_MODE="system"                                   # 구름 로마자. macOS 가 멋대로 켜므로 덤 배열로 쓴다
 
 LOGIN_AGENT="kr.codyssey.gureum.init"                 # 관리자가 설치한 로그인 에이전트
 LOGIN_AGENT_PROCS='init_gureum\.sh|set_gureum_ime\.swift'
@@ -180,8 +184,49 @@ setup_capslock() {
 }
 
 # ---------------------------------------------------------------- 3. 입력 소스
+#
+# 서드파티 입력 소스 목록은 com.apple.inputsources 에 저장되지만, 파일만 고쳐서는 이미
+# 실행 중인 프로세스(앱, 메뉴 막대, System Settings)가 목록을 다시 읽지 않는다. 배포 알림
+# (AppleEnabledInputSourcesChangedNotification)이나 Darwin 알림(TISNotify...)을 직접
+# 보내도, TextInputMenuAgent 를 다시 띄워도 마찬가지다(Sequoia 15.7 에서 확인). 그 상태로
+# 메뉴에서 구름을 고르면 앞 앱은 "켜지지 않은 소스"로 보고 무시해서 아이콘이 바뀌지 않는다.
+# System Settings 에서 아무 입력 소스나 추가했다 지우면 그때부터 동작하는 이유가 이것이다.
+#
+# 실행 중인 프로세스까지 갱신하는 것은 TIS API 호출뿐이다. 그런데 TISEnableInputSource 는
+# 서드파티 배열에 대해 System Settings 밖에서는 조용히 무시되거나 확인 창을 띄우고,
+# TISDisableInputSource 는 그냥 동작한다. 그래서 목록을 저장할 때 쓰지 않는 구름 배열
+# 하나를 덤으로 넣어 두고 API 로 끈다. 끄는 순간 모든 프로세스가 목록 전체를 다시 읽는다.
+#
+# 덤 배열은 반드시 "지금 켜져 있는" 것이어야 한다. 이미 꺼진 배열에 TISDisableInputSource 를
+# 부르면 0 을 돌려주지만 아무 일도 일어나지 않는다(전파 없음). 그래서 덤 배열도 파일에 먼저
+# 켜서 써 둔다.
+#
+# 덤 배열로는 구름 로마자(system)를 먼저 고른다. Gureum.app Info.plist 에서
+# tsInputModeDefaultStateKey 가 참인 배열은 han2(두벌식)와 system(로마자) 둘뿐이고,
+# 로그인 에이전트가 TISEnableInputSource 로 구름 입력기를 켜면 macOS 가 이 둘을 자동으로
+# 켠다. 구름 로마자는 smRoman + primaryInScript 라서 켜져 있으면 ABC 자리를 가로채
+# 메뉴 막대에 "로마자"가 뜨고 앱의 입력 소스 전환이 어긋난다. 어차피 꺼야 하는 것이므로
+# 전파용으로 같이 쓴다. 마지막에는 요청하지 않았는데 켜져 있는 구름 배열이 하나도 남지
+# 않을 때까지 끄기를 되풀이한다.
 
-# 입력 소스가 지금 켜져 있는지 (새 프로세스에서 확인해야 최신 상태가 보인다)
+# 지금 켜져 있는 입력 소스 중 인자로 받은 번들의 것을 모두 출력한다 (한 줄에 하나).
+# TISCreateInputSourceList 의 두 번째 인자가 false 면 켜진 것만 돌려준다.
+ENABLED_JS='
+function run(argv) {
+    ObjC.import("Carbon");
+    var filter = $.NSMutableDictionary.dictionary;
+    filter.setObjectForKey($(argv[0]), ObjC.castRefToObject($.kTISPropertyBundleID));
+    var list = ObjC.castRefToObject($.TISCreateInputSourceList(filter, false));
+    if (!list || list.isNil()) return "";
+    var out = [];
+    for (var i = 0; i < list.count; i++) {
+        var id = ObjC.castRefToObject($.TISGetInputSourceProperty(list.objectAtIndex(i), $.kTISPropertyInputSourceID)).js;
+        if (id) out.push(id);
+    }
+    return out.join("\n");
+}'
+
+# 입력 소스가 지금 켜져 있는지 (새 프로세스라 저장 파일 기준의 최신 상태가 보인다)
 # 출력: enabled | disabled | notfound
 TIS_JS='
 function run(argv) {
@@ -194,17 +239,50 @@ function run(argv) {
     return on ? "enabled" : "disabled";
 }'
 
-# 입력 소스 목록이 바뀌었다고 알린다. 메뉴 막대와 실행 중인 앱이 목록을 다시 읽는다.
-NOTIFY_JS='
-function run() {
-    ObjC.import("Foundation");
-    var c = $.NSDistributedNotificationCenter.defaultCenter;
-    ["AppleEnabledInputSourcesChangedNotification",
-     "com.apple.Carbon.TISNotifyEnabledKeyboardInputSourcesChanged"].forEach(function (n) {
-        c.postNotificationNameObjectUserInfoDeliverImmediately(n, null, null, true);
-    });
-    return "ok";
+# 입력 소스를 TIS API 로 끈다. 목록이 바뀌었다는 사실이 실행 중인 모든 프로세스에 전파된다.
+# 출력: ok | notfound | error <status>
+DISABLE_JS='
+function run(argv) {
+    ObjC.import("Carbon"); ObjC.import("Foundation");
+    var filter = $.NSMutableDictionary.dictionary;
+    filter.setObjectForKey($(argv[0]), ObjC.castRefToObject($.kTISPropertyInputSourceID));
+    var list = ObjC.castRefToObject($.TISCreateInputSourceList(filter, true));
+    if (!list || list.isNil() || !list.count) return "notfound";
+    var st = $.TISDisableInputSource(list.objectAtIndex(0));
+    $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(1));
+    return st == 0 ? "ok" : "error " + st;
 }'
+
+# 설정을 바꾸기 전에 띄워 두는 감시 프로세스. 자기 캐시 기준으로 인자로 받은 입력 소스가
+# 모두 켜졌는지 매초 한 줄씩 출력하고, 모두 켜지면 끝난다. 새 프로세스의 확인(TIS_JS)은
+# 저장 파일만 보여 주므로 "이미 떠 있던 프로세스에 전파되었는가"는 이것으로만 알 수 있다.
+# 인자: <최대 초> <입력 소스 ID>...   출력: ok | pending <아직 안 켜진 ID>...
+WATCH_JS='
+function run(argv) {
+    ObjC.import("Carbon"); ObjC.import("Foundation");
+    var out = $.NSFileHandle.fileHandleWithStandardOutput;
+    var secs = parseInt(argv.shift());
+    for (var i = 0; i < secs; i++) {
+        var missing = argv.filter(function (id) {
+            var filter = $.NSMutableDictionary.dictionary;
+            filter.setObjectForKey($(id), ObjC.castRefToObject($.kTISPropertyInputSourceID));
+            var list = ObjC.castRefToObject($.TISCreateInputSourceList(filter, true));
+            if (!list || list.isNil() || !list.count) return true;
+            return !ObjC.castRefToObject($.TISGetInputSourceProperty(list.objectAtIndex(0), $.kTISPropertyInputSourceIsEnabled)).js;
+        });
+        var line = missing.length ? "pending " + missing.join(" ") : "ok";
+        out.writeData($(line + "\n").dataUsingEncoding($.NSUTF8StringEncoding));
+        if (!missing.length) return "";
+        $.NSRunLoop.currentRunLoop.runUntilDate($.NSDate.dateWithTimeIntervalSinceNow(1));
+    }
+    return "";
+}'
+
+# 구름 입력기 배열 이름 목록 (han2 han3final ...)
+gureum_modes() {
+    $PB -c "Print :ComponentInputModeDict:tsInputModeListKey" "$1/Contents/Info.plist" \
+        | sed -n 's/^    '"$GUREUM_BUNDLE"'\.\([A-Za-z0-9._-]*\) = Dict {/\1/p' | sort
+}
 
 # 배열 배열(plist 의 dict 배열)에서 구름 입력기 항목을 모두 지운다. $1=plist $2=키
 delete_gureum_entries() {
@@ -217,6 +295,28 @@ delete_gureum_entries() {
         fi
     done
     echo "$n"
+}
+
+# 서드파티 목록 끝에 구름 배열 항목을 추가한다. $1=plist $2=배열 이름
+add_gureum_mode() {
+    n=0
+    while $PB -c "Print :AppleEnabledThirdPartyInputSources:$n" "$1" >/dev/null 2>&1; do
+        n=$((n + 1))
+    done
+    $PB -c "Add :AppleEnabledThirdPartyInputSources:$n dict" \
+        -c "Add :AppleEnabledThirdPartyInputSources:$n:'Bundle ID' string '$GUREUM_BUNDLE'" \
+        -c "Add :AppleEnabledThirdPartyInputSources:$n:'Input Mode' string '$GUREUM_BUNDLE.$2'" \
+        -c "Add :AppleEnabledThirdPartyInputSources:$n:InputSourceKind string 'Input Mode'" \
+        "$1" >/dev/null
+}
+
+# 요청 목록($1, 공백 구분)에 없는데 지금 켜져 있는 구름 배열 이름들을 출력한다.
+# 새 프로세스로 물으므로 저장 파일 기준의 최신 상태가 보인다.
+stray_modes() {
+    for id in $(jxa "$ENABLED_JS" "$GUREUM_BUNDLE"); do
+        case "$id" in "$GUREUM_BUNDLE".*) m=${id#"$GUREUM_BUNDLE".} ;; *) continue ;; esac
+        case " $1 " in *" $m "*) ;; *) printf '%s\n' "$m" ;; esac
+    done
 }
 
 setup_input_sources() {
@@ -236,6 +336,21 @@ setup_input_sources() {
         case " $modes " in *" $m "*) ;; *) modes="$modes $m" ;; esac
     done
 
+    # 전파용 덤 배열: 구름 로마자를 먼저, 없으면 쓰지 않는 배열 아무거나 하나
+    all_modes=$(gureum_modes "$app")
+    dummy=""
+    for m in $(printf '%s\n' "$all_modes" | grep -x "$ROMAN_MODE") $all_modes; do
+        case " $modes " in *" $m "*) ;; *) dummy="$m"; break ;; esac
+    done
+
+    # 전파 확인용 감시 프로세스. 설정을 바꾸기 전에 띄워야 "예전 상태를 기억하는 프로세스"가 된다.
+    ids=""
+    for m in $modes; do ids="$ids $GUREUM_BUNDLE.$m"; done
+    watch_out=$(mktemp -t watch) || die "임시 파일을 만들 수 없습니다"
+    # shellcheck disable=SC2086
+    osascript -l JavaScript -e "$WATCH_JS" 15 $ids > "$watch_out" 2>/dev/null &
+    watch_pid=$!
+
     # (a) 예전 방식으로 HIToolbox 에 들어간 구름 항목 제거 (설정 화면 중복의 원인)
     pl=$(mktemp -t HIToolbox) || die "임시 파일을 만들 수 없습니다"
     defaults export com.apple.HIToolbox "$pl" 2>/dev/null || printf '{}\n' > "$pl"
@@ -246,7 +361,7 @@ setup_input_sources() {
     fi
     rm -f "$pl"
 
-    # (b) 서드파티 입력 소스 목록을 구름 입력기 + 배열들로 다시 쓴다
+    # (b) 서드파티 입력 소스 목록을 구름 입력기 + 배열들(+ 덤 배열)로 다시 쓴다
     #     (다른 서드파티 입력기 항목은 그대로 둔다)
     pl=$(mktemp -t inputsources) || die "임시 파일을 만들 수 없습니다"
     defaults export com.apple.inputsources "$pl" 2>/dev/null || printf '{}\n' > "$pl"
@@ -261,24 +376,36 @@ setup_input_sources() {
         -c "Add :AppleEnabledThirdPartyInputSources:$count:'Bundle ID' string '$GUREUM_BUNDLE'" \
         -c "Add :AppleEnabledThirdPartyInputSources:$count:InputSourceKind string 'Keyboard Input Method'" \
         "$pl" >/dev/null
-    count=$((count + 1))
-    for m in $modes; do
-        $PB -c "Add :AppleEnabledThirdPartyInputSources:$count dict" \
-            -c "Add :AppleEnabledThirdPartyInputSources:$count:'Bundle ID' string '$GUREUM_BUNDLE'" \
-            -c "Add :AppleEnabledThirdPartyInputSources:$count:'Input Mode' string '$GUREUM_BUNDLE.$m'" \
-            -c "Add :AppleEnabledThirdPartyInputSources:$count:InputSourceKind string 'Input Mode'" \
-            "$pl" >/dev/null
-        count=$((count + 1))
-    done
+    for m in $modes $dummy; do add_gureum_mode "$pl" "$m"; done
     defaults import com.apple.inputsources "$pl"
     rm -f "$pl"
+    info "저장: $modes"
 
-    # (c) 변경 알림 + 메뉴 막대 입력 메뉴 재시작 (구름 입력기도 같이 다시 뜬다)
-    jxa "$NOTIFY_JS" "" >/dev/null
-    launchctl kickstart -k "gui/$uid/com.apple.TextInputMenuAgent" >/dev/null 2>&1
-    sleep 2
+    # (c) 전파와 정리: 요청하지 않았는데 켜져 있는 구름 배열(덤 배열, 그리고 macOS 가
+    #     자동으로 켠 구름 로마자)을 TIS API 로 끈다. 이 호출만이 목록 변경을 실행 중인
+    #     모든 프로세스에 전파한다. 하나도 남지 않을 때까지 되풀이한다.
+    [ -n "$dummy" ] || warn "전파용 배열이 없습니다 (모든 배열을 요청함). 로그아웃 후 다시 로그인하세요"
+    round=0
+    while :; do
+        strays=$(stray_modes "$modes")
+        [ -n "$strays" ] || break
+        round=$((round + 1))
+        if [ "$round" -gt 4 ]; then
+            warn "요청하지 않은 배열이 계속 켜집니다:$(printf ' %s' $strays)
+    System Settings > 키보드 > 입력 소스에서 지우거나, 로그아웃 후 다시 로그인하세요"
+            break
+        fi
+        for m in $strays; do
+            r=$(jxa "$DISABLE_JS" "$GUREUM_BUNDLE.$m")
+            if [ "$r" = "ok" ]; then
+                info "요청하지 않은 배열 $m 끔"
+            else
+                warn "$m 을(를) 끄지 못했습니다 (${r:-osascript 오류})"
+            fi
+        done
+    done
 
-    # (d) 확인
+    # (d) 확인 1: 저장 파일 기준 (새 프로세스)
     for m in $modes; do
         id="$GUREUM_BUNDLE.$m"
         case "$(jxa "$TIS_JS" "$id")" in
@@ -286,6 +413,15 @@ setup_input_sources() {
             *)       warn "$id - 아직 켜지지 않았습니다. 로그아웃 후 다시 로그인하세요" ;;
         esac
     done
+
+    # (d) 확인 2: 이미 떠 있던 프로세스에 전파되었는가 (감시 프로세스 기준)
+    wait "$watch_pid" 2>/dev/null
+    case "$(grep -v '^$' "$watch_out" | tail -1)" in
+        ok) info "실행 중인 앱과 메뉴 막대에도 반영됨" ;;
+        *)  warn "실행 중인 앱에는 아직 반영되지 않았습니다. System Settings > 키보드 > 입력 소스에서
+    아무 입력 소스나 추가했다 지우거나, 로그아웃 후 다시 로그인하세요" ;;
+    esac
+    rm -f "$watch_out"
 }
 
 # ---------------------------------------------------------------- main
@@ -302,8 +438,7 @@ main() {
     if [ "${1:-}" = "--list" ]; then
         echo "설치 위치: $app"
         echo "사용 가능한 배열 (이름만 쓰면 됩니다. 예: han3final):"
-        $PB -c "Print :ComponentInputModeDict:tsInputModeListKey" "$app/Contents/Info.plist" \
-            | sed -n 's/^    '"$GUREUM_BUNDLE"'\.\([A-Za-z0-9._-]*\) = Dict {/  \1/p' | sort
+        gureum_modes "$app" | sed 's/^/  /'
         echo "system(로마자)과 hanroman(한글 로마자)은 영문 입력용이 아닙니다. 영문은 ABC 를 쓰세요."
         return 0
     fi
