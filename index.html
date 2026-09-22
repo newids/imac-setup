@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="ko" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>imac-setup</title>
+  <meta name="description" content="실습실 iMac 키보드 환경 자동 설정. 관리자 권한 없이 터미널 한 줄로 fn 키 동작, Caps Lock → fn, 구름 입력 소스를 한 번에 맞춥니다.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f5f3ef" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#16171c" media="(prefers-color-scheme: dark)">
+  <meta property="og:title" content="imac-setup · iMac 키보드 실습 환경 자동 설정">
+  <meta property="og:description" content="Caps Lock 한 번으로 한 ↔ 영 전환. 터미널 한 줄이면 끝.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://newids.github.io/imac-setup/">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <script>document.documentElement.classList.replace('no-js','js');try{var t=localStorage.getItem('imac-setup-theme');if(t==='light'||t==='dark'){document.documentElement.dataset.theme=t}}catch(e){}</script>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip-link" href="#main">본문으로 건너뛰기</a>
+
+<header class="topbar">
+  <a class="brand" href="#top" aria-label="imac-setup 처음으로">
+    <span class="brand-key" aria-hidden="true">⇪</span>
+    <span class="brand-name">imac-setup</span>
+  </a>
+  <nav class="topnav" aria-label="페이지 내 이동">
+    <a href="#run">실행</a>
+    <a href="#layouts">배열</a>
+    <a href="#troubleshoot">문제 해결</a>
+    <a href="#how">동작 원리</a>
+  </nav>
+  <div class="topbar-actions">
+    <a class="icon-link" href="https://github.com/newids/imac-setup" rel="noopener" aria-label="GitHub 저장소">
+      <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <button class="theme-toggle" type="button" data-theme-toggle aria-label="다크/라이트 모드 전환">
+      <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <div class="hero-copy">
+    <p class="eyebrow reveal"><span>macOS Sequoia 15.7</span><span>구름 입력기 1.13</span><span>실습실 iMac</span></p>
+    <h1 class="reveal">Caps Lock 한 번으로<br><em>한 ↔ 영</em> 전환.<br>터미널 한 줄이면 끝.</h1>
+    <p class="lede reveal">관리자 권한 없이, System Settings 를 열지 않고, 로그아웃 없이. <br class="wide-only">fn 키 동작 · Caps Lock → fn · 구름 입력 소스, 세 가지를 한 번에 설정합니다.</p>
+
+    <div class="cmd cmd--hero reveal" data-copy-block>
+      <span class="cmd-prompt" aria-hidden="true">$</span>
+      <code class="cmd-text" data-copy-text>curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh</code>
+      <button class="copy-btn" type="button" data-copy-btn aria-label="명령 복사">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-copy"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-check"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="copy-label">복사</span>
+      </button>
+    </div>
+    <p class="hero-note reveal">로그인 뒤 터미널(Terminal)을 열고 붙여 넣으세요. 세벌식이 필요하면 <a href="#run">실행 절</a>의 다른 명령을 쓰세요.</p>
+  </div>
+
+  <div class="hero-art reveal">
+    <div class="demo">
+      <div class="menubar" aria-hidden="true">
+        <span class="menubar-apple"></span>
+        <span class="menubar-app">Finder</span>
+        <span class="menubar-spacer"></span>
+        <span class="menubar-src" data-demo-glyph>A</span>
+        <span class="menubar-time">2:41</span>
+        <ul class="menubar-menu" data-demo-menu>
+          <li class="menu-item is-active"><span class="menu-check">✓</span><span class="menu-glyph">A</span>ABC</li>
+          <li class="menu-item"><span class="menu-check">✓</span><span class="menu-glyph">한</span>두벌식</li>
+          <li class="menu-item"><span class="menu-check">✓</span><span class="menu-glyph">한</span>세벌식 최종</li>
+        </ul>
+      </div>
+      <button class="keycap" type="button" data-demo-key aria-label="Caps Lock 키를 눌러 입력 소스 전환 미리 보기">
+        <span class="keycap-top">
+          <span class="keycap-led" aria-hidden="true"></span>
+          <span class="keycap-label">caps lock</span>
+          <span class="keycap-glyph" aria-hidden="true">⇪</span>
+        </span>
+      </button>
+      <p class="demo-hint">키를 눌러 보세요 — 배열이 둘 이상이면 순서대로 돕니다</p>
+    </div>
+  </div>
+</section>
+
+<div class="layout">
+  <aside class="toc" aria-label="목차">
+    <p class="toc-title">목차</p>
+    <ol class="toc-list" data-toc>
+      <li><a href="#what">설정 항목</a></li>
+      <li><a href="#run">실행</a></li>
+      <li><a href="#layouts">배열 이름</a></li>
+      <li><a href="#screen">실행 중 화면</a></li>
+      <li><a href="#verify">확인</a></li>
+      <li><a href="#troubleshoot">문제 해결</a></li>
+      <li><a href="#revert">되돌리기</a></li>
+      <li><a href="#how">동작 원리</a></li>
+      <li><a href="#refs">참고 · 소스</a></li>
+    </ol>
+  </aside>
+
+  <div class="content">
+
+  <section class="section" id="what" aria-labelledby="what-h">
+    <p class="section-index">01</p>
+    <h2 id="what-h" class="reveal">세 가지를 한 번에 설정합니다</h2>
+    <p class="section-lede reveal">System Settings 에서 직접 바꾸면 세 화면을 오가야 하는 항목입니다. 스크립트는 System Settings 가 쓰는 위치와 형식 그대로 저장하고, 즉시 적용까지 같은 경로로 합니다.</p>
+    <div class="bento reveal">
+      <article class="tile tile--wide">
+        <p class="tile-path">키보드 › fn 키를 누를 때 실행할 동작</p>
+        <p class="tile-value">입력 소스 변경</p>
+        <p class="tile-desc">fn 키 자체는 그대로 두고, 눌렀을 때의 동작만 "입력 소스 변경"으로 바꿉니다.</p>
+      </article>
+      <article class="tile tile--accent">
+        <p class="tile-path">키보드 단축키 › 보조 키 › Caps Lock 키</p>
+        <p class="tile-value">fn 기능</p>
+        <p class="tile-desc">Caps Lock 이 fn 이 되므로, 위 설정과 합쳐져 Caps Lock 한 번이 곧 한영 전환이 됩니다.</p>
+      </article>
+      <article class="tile tile--tall">
+        <p class="tile-path">텍스트 입력 › 입력 소스</p>
+        <p class="tile-value">ABC + 구름 입력기</p>
+        <p class="tile-desc">두벌식은 항상 포함되고, 요청한 배열(세벌식 최종 등)이 추가됩니다. 구름 "로마자"는 뺍니다.</p>
+        <ul class="tile-list">
+          <li><span class="chip chip--ok">ABC</span> 영문</li>
+          <li><span class="chip chip--ok">두벌식</span> 기본 한글</li>
+          <li><span class="chip">세벌식 최종</span> 요청 시</li>
+          <li><span class="chip chip--no">로마자</span> 제외</li>
+        </ul>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="run" aria-labelledby="run-h">
+    <p class="section-index">02</p>
+    <h2 id="run-h" class="reveal">실행</h2>
+    <p class="section-lede reveal">로그인한 뒤 터미널(Terminal)을 열고 아래 한 줄을 붙여 넣습니다. 원하는 배열 조합을 고르세요.</p>
+
+    <div class="cmd-switcher reveal" data-cmd-switcher>
+      <div class="segmented" role="tablist" aria-label="명령 선택">
+        <button role="tab" type="button" id="tab-han2" aria-selected="true" aria-controls="cmd-panel" data-cmd="curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh" data-cmd-desc="구름 입력기 두벌식만 설정합니다. 이미 세벌식을 넣었다면 이 명령으로 다시 두벌식만 남깁니다.">두벌식만</button>
+        <button role="tab" type="button" id="tab-han3final" aria-selected="false" aria-controls="cmd-panel" tabindex="-1" data-cmd="curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- han3final" data-cmd-desc="두벌식에 세벌식 최종을 더합니다. Caps Lock 을 누르면 ABC → 두벌식 → 세벌식 최종 순서로 돕니다.">+ 세벌식 최종</button>
+        <button role="tab" type="button" id="tab-multi" aria-selected="false" aria-controls="cmd-panel" tabindex="-1" data-cmd="curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- han3final han390" data-cmd-desc="배열 이름을 공백으로 나열하면 여러 배열을 한꺼번에 넣습니다.">여러 배열</button>
+        <button role="tab" type="button" id="tab-list" aria-selected="false" aria-controls="cmd-panel" tabindex="-1" data-cmd="curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh -s -- --list" data-cmd-desc="설치된 구름 입력기가 제공하는 배열 이름을 출력만 하고 아무것도 바꾸지 않습니다.">배열 이름 확인</button>
+      </div>
+      <div class="cmd" id="cmd-panel" role="tabpanel" aria-labelledby="tab-han2" data-copy-block>
+        <span class="cmd-prompt" aria-hidden="true">$</span>
+        <code class="cmd-text" data-copy-text data-cmd-target>curl -fsSL https://newids.github.io/imac-setup/iMac-setup.sh | sh</code>
+        <button class="copy-btn" type="button" data-copy-btn aria-label="명령 복사">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-copy"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-check"><path d="M20 6 9 17l-5-5"/></svg>
+          <span class="copy-label">복사</span>
+        </button>
+      </div>
+      <p class="cmd-desc" data-cmd-desc-target aria-live="polite">구름 입력기 두벌식만 설정합니다. 이미 세벌식을 넣었다면 이 명령으로 다시 두벌식만 남깁니다.</p>
+    </div>
+
+    <ul class="notes reveal">
+      <li><strong>두벌식(<code>han2</code>)은 항상 포함됩니다.</strong> 로그인 에이전트가 두벌식을 강제로 켜기 때문에, 목록에 없으면 로그인 때마다 확인 창이 뜹니다.</li>
+      <li><strong>여러 번 실행해도 안전합니다.</strong> 실행할 때마다 구름 입력기 목록을 "두벌식 + 지정한 배열"로 다시 씁니다. 세벌식을 빼고 싶으면 인자 없이 다시 실행하면 됩니다.</li>
+    </ul>
+  </section>
+
+  <section class="section" id="layouts" aria-labelledby="layouts-h">
+    <p class="section-index">03</p>
+    <h2 id="layouts-h" class="reveal">배열 이름</h2>
+    <p class="section-lede reveal">명령 뒤에 붙이는 이름입니다. 설치된 구름 입력기가 제공하는 정확한 목록은 <code>--list</code> 로 확인하세요.</p>
+    <div class="table-wrap reveal">
+      <table class="layouts">
+        <thead><tr><th scope="col">이름</th><th scope="col">배열</th><th scope="col">비고</th></tr></thead>
+        <tbody>
+          <tr><td><code>han2</code></td><td>두벌식</td><td><span class="chip chip--ok">기본</span> 항상 포함</td></tr>
+          <tr><td><code>han3final</code></td><td>세벌식 최종</td><td></td></tr>
+          <tr><td><code>han390</code></td><td>세벌식 390</td><td></td></tr>
+          <tr><td><code>han3noshift</code></td><td>세벌식 순아래</td><td></td></tr>
+          <tr><td><code>han3finalnoshift</code></td><td>세벌식 최종 순아래</td><td></td></tr>
+          <tr><td><code>han3-2011</code> <code>han3-2012</code></td><td>세벌식 2011 / 2012</td><td></td></tr>
+          <tr><td><code>han2classic</code> <code>han3classic</code></td><td>두벌식 옛글 / 세벌식 옛글</td><td></td></tr>
+          <tr><td><code>hanahnmatae</code></td><td>안마태</td><td></td></tr>
+          <tr class="row--warn"><td><code>system</code></td><td>로마자</td><td><span class="chip chip--no">추가하지 마세요</span> 영문은 ABC 로 입력합니다</td></tr>
+          <tr><td><code>hanroman</code></td><td>한글 로마자</td><td>로마자로 한글을 조합하는 배열. 영문 입력용이 아닙니다</td></tr>
+          <tr><td><code>qwerty</code> <code>dvorak</code> <code>colemak</code></td><td>영문 배열</td><td><span class="chip chip--muted">제거 예정</span> 구름 입력기에서 제거 예정</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <aside class="callout callout--warn reveal">
+      <p class="callout-title">로마자 주의</p>
+      <p>구름 입력기의 "로마자"는 영문 자판이 아니라 구름 입력기 안의 영문 모드입니다. 이 항목이 입력 소스에 들어가면 fn/Caps Lock 전환이 ABC → 로마자 → 두벌식 3단계로 돌고, 로마자 상태에서는 영문 입력이 정상적으로 되지 않습니다. 스크립트는 이 항목을 목록에서 제외합니다. 영문은 ABC 하나로 충분합니다.</p>
+    </aside>
+  </section>
+
+  <section class="section" id="screen" aria-labelledby="screen-h">
+    <p class="section-index">04</p>
+    <h2 id="screen-h" class="reveal">실행 중 화면</h2>
+    <div class="terminal reveal" role="img" aria-label="스크립트 실행 출력 예시. 0단계 로그인 초기화 대기, 1단계 fn 키 동작, 2단계 Caps Lock 매핑, 3단계 구름 입력 소스 순서로 진행되고 완료 메시지로 끝납니다.">
+      <div class="terminal-bar"><span class="dot dot--r"></span><span class="dot dot--y"></span><span class="dot dot--g"></span><span class="terminal-title">iMac-setup.sh — sh</span></div>
+<pre class="terminal-body"><span class="t-step">0.</span> 로그인 초기화 완료 대기
+  <span class="t-dim">… 로그인 에이전트(kr.codyssey.gureum.init) 실행 중 (최대 180초)....</span>
+  <span class="t-ok">/</span> 로그인 초기화 완료 (8초 대기)
+
+<span class="t-step">1.</span> fn 키를 누를 때 실행할 동작 -> 입력 소스 변경
+  <span class="t-ok">/</span> AppleFnUsageType = 1
+
+<span class="t-step">2.</span> 보조 키: Caps Lock -> fn 기능
+  <span class="t-ok">/</span> modifiermapping.1452-591-0 저장
+  <span class="t-ok">/</span> 키보드 1대에 즉시 적용
+
+<span class="t-step">3.</span> 입력 소스: 구름 입력기
+  <span class="t-ok">/</span> org.youknowone.inputmethod.Gureum.han2 켜짐
+  <span class="t-ok">/</span> org.youknowone.inputmethod.Gureum.han3final 켜짐
+
+<span class="t-done">완료.</span> 세 항목 모두 지금 적용되었고 재로그인 후에도 유지됩니다.</pre>
+    </div>
+    <div class="explain reveal">
+      <article class="explain-item">
+        <h3>0단계에서 기다리는 이유</h3>
+        <p>실습실 iMac 은 로그인 직후 관리자 에이전트가 구름 입력기를 띄우고 swift 로 두벌식을 강제 선택합니다. 이 작업이 끝나기 전에 설정을 바꾸면 나중에 끝나는 쪽이 입력 소스 목록을 덮어써서 추가한 배열이 사라집니다.</p>
+      </article>
+      <article class="explain-item">
+        <h3>로그인 직후 뜨는 확인 창</h3>
+        <p>"swift 이(가) 서드파티 입력 방법 '구름 입력기'를 활성화하려고 합니다" 창입니다. 관리자 에이전트가 API(TISEnableInputSource)로 두벌식을 켤 때 macOS 가 묻는 것으로, 두벌식이 이미 서드파티 입력 소스 목록에 들어 있으면 뜨지 않습니다. 이 스크립트를 한 번 실행해 두면 목록에 들어가므로 다음 로그인부터는 뜨지 않아야 합니다. 관리자 에이전트 자체는 이 스크립트에서 바꿀 수 없습니다.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="verify" aria-labelledby="verify-h">
+    <p class="section-index">05</p>
+    <h2 id="verify-h" class="reveal">확인</h2>
+    <ol class="checklist reveal">
+      <li><span class="check-num">1</span><div><strong>마지막 줄을 봅니다.</strong> <code>실행 중인 앱과 메뉴 막대에도 반영됨</code> 이 나와야 합니다. 이 줄이 나오면 이미 열려 있던 앱에서도 바로 전환됩니다.</div></li>
+      <li><span class="check-num">2</span><div><strong>메뉴 막대를 봅니다.</strong> 오른쪽 입력 메뉴에 ABC 와 구름 입력기 배열이 보이면 성공입니다. 목록에 "구름 로마자"가 있으면 안 됩니다.</div></li>
+      <li><span class="check-num">3</span><div><strong>Caps Lock 을 눌러 봅니다.</strong> ABC ↔ 구름 입력기가 바뀝니다. 한글 배열이 둘 이상이면 순서대로 돕니다.</div></li>
+      <li><span class="check-num">4</span><div><strong>터미널에서 직접 확인합니다.</strong>
+<pre class="code"><code><span class="c-cmd">defaults export com.apple.inputsources -</span>                 <span class="c-comment"># 구름 입력기 목록</span>
+<span class="c-cmd">defaults read com.apple.HIToolbox AppleFnUsageType</span>       <span class="c-comment"># 1 이면 입력 소스 변경</span>
+<span class="c-cmd">defaults -currentHost read -g | grep -A4 modifiermapping</span> <span class="c-comment"># Caps Lock -> fn (정수 값)</span></code></pre>
+        <p class="fine"><code>plutil -p ~/Library/Preferences/com.apple.inputsources.plist</code> 는 아직 디스크에 내려가지 않은 옛 내용을 보여 줄 수 있습니다. 확인은 위처럼 <code>defaults export</code> 로 하세요.</p>
+      </div></li>
+    </ol>
+  </section>
+
+  <section class="section" id="troubleshoot" aria-labelledby="troubleshoot-h">
+    <p class="section-index">06</p>
+    <h2 id="troubleshoot-h" class="reveal">문제 해결</h2>
+    <p class="section-lede reveal">대부분은 스크립트를 다시 실행하면 정리됩니다. 증상을 눌러 조치를 보세요.</p>
+    <div class="faq reveal">
+      <details class="faq-item">
+        <summary>설정 화면 입력 소스 목록에 같은 구름 항목이 여러 개</summary>
+        <div class="faq-body"><p>예전 방식으로 <code>com.apple.HIToolbox</code> 에 들어간 항목이 원인입니다. 스크립트를 다시 실행하면 정리됩니다.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>입력 소스 목록에 "구름 로마자"가 있고 메뉴 막대에 로마자 아이콘이 뜸</summary>
+        <div class="faq-body"><p>로그인 때 macOS 가 자동으로 켠 것입니다. 스크립트를 다시 실행하면 꺼집니다.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>Caps Lock 이 여전히 Caps Lock 으로 동작</summary>
+        <div class="faq-body"><p>스크립트를 다시 실행하고 "키보드 N대에 즉시 적용" 이 나오는지 확인하세요. 안 나오면 로그아웃 후 다시 로그인합니다.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>입력란 아래 전환 메뉴에 구름이 안 보이고 ABC 만 있음</summary>
+        <div class="faq-body"><p>실행 중인 앱에 전파되지 않은 것입니다. 스크립트를 다시 실행하고 마지막 줄에 <code>실행 중인 앱과 메뉴 막대에도 반영됨</code> 이 나오는지 확인하세요.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary>추가한 배열이 메뉴에 안 보임</summary>
+        <div class="faq-body"><p>스크립트를 다시 실행합니다. 그래도 안 되면 로그아웃 후 다시 로그인합니다.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><code>구름 입력기(Gureum.app)가 설치되어 있지 않습니다</code></summary>
+        <div class="faq-body"><p>관리자에게 설치를 요청하세요. 또는 <code>~/Library/Input Methods/</code> 에 Gureum.app 을 복사한 뒤 재로그인합니다.</p></div>
+      </details>
+      <details class="faq-item">
+        <summary><code>… 구름 입력기에 없는 배열입니다</code></summary>
+        <div class="faq-body"><p><code>--list</code> 로 이름을 확인하세요.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="section" id="revert" aria-labelledby="revert-h">
+    <p class="section-index">07</p>
+    <h2 id="revert-h" class="reveal">되돌리기</h2>
+    <div class="cmd cmd--multi reveal" data-copy-block>
+<pre class="cmd-text" data-copy-text><code>defaults write com.apple.HIToolbox AppleFnUsageType -int 2
+defaults -currentHost delete -g com.apple.keyboard.modifiermapping.1452-591-0
+defaults delete com.apple.inputsources AppleEnabledThirdPartyInputSources
+launchctl kickstart -k gui/$(id -u)/com.apple.TextInputMenuAgent</code></pre>
+      <button class="copy-btn" type="button" data-copy-btn aria-label="되돌리기 명령 복사">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-copy"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="icon-check"><path d="M20 6 9 17l-5-5"/></svg>
+        <span class="copy-label">복사</span>
+      </button>
+    </div>
+    <p class="fine reveal">Caps Lock 매핑은 로그아웃 후 다시 로그인하면 원래대로 돌아옵니다. 입력 소스는 System Settings › 키보드 › 입력 소스 › 편집에서도 정리할 수 있습니다.</p>
+  </section>
+
+  <section class="section" id="how" aria-labelledby="how-h">
+    <p class="section-index">08</p>
+    <h2 id="how-h" class="reveal">동작 원리 <span class="h-sub">Sequoia 15.7 기준</span></h2>
+    <p class="section-lede reveal">System Settings 가 쓰는 위치와 형식에 그대로 맞추고, 즉시 적용도 System Settings 와 같은 경로를 씁니다.</p>
+    <ol class="steps reveal">
+      <li class="step">
+        <h3>fn 키 동작</h3>
+        <p><code>com.apple.HIToolbox</code> 의 <code>AppleFnUsageType</code> 을 1 로 씁니다.</p>
+      </li>
+      <li class="step">
+        <h3>Caps Lock → fn 저장</h3>
+        <p>ByHost <code>.GlobalPreferences</code> 의 <code>com.apple.keyboard.modifiermapping.&lt;VendorID&gt;-&lt;ProductID&gt;-&lt;CountryCode&gt;</code> 에 <strong>정수</strong> 값으로 씁니다. 문자열로 저장되면 시스템이 무시합니다. 로그인 때 시스템이 이 값을 읽어 키보드에 적용합니다.</p>
+      </li>
+      <li class="step">
+        <h3>Caps Lock → fn 즉시 적용</h3>
+        <p>로그인 때 시스템이 키보드 서비스에 넣는 속성 <code>HIDKeyboardModifierMappingPairs</code> 를 지금 바로 넣습니다. 이 속성은 HID 이벤트 시스템의 monitor 클라이언트로만 넣을 수 있어서 <code>hidutil</code> 로는 안 되고, JXA(<code>osascript -l JavaScript</code>)로 IOKit 함수를 직접 호출합니다. <code>hidutil</code> 의 <code>UserKeyMapping</code> 으로 Caps Lock 을 fn 으로 바꾸면 키는 바뀌지만 fn 의 "입력 소스 변경" 동작이 일어나지 않습니다.</p>
+      </li>
+      <li class="step">
+        <h3>구름 입력 소스</h3>
+        <p>Sequoia 는 서드파티 입력기를 <code>com.apple.inputsources</code> 의 <code>AppleEnabledThirdPartyInputSources</code> 에 저장합니다 (입력기 항목 + 배열 항목). 스크립트는 이 목록을 "구름 입력기 + 두벌식 + 지정한 배열"로 쓰고, 예전 방식으로 <code>com.apple.HIToolbox</code> 의 <code>AppleEnabledInputSources</code> 에 들어간 구름 항목은 지웁니다 (양쪽에 다 있으면 설정 화면에 중복으로 나타남).</p>
+      </li>
+      <li class="step">
+        <h3>실행 중인 앱에 전파</h3>
+        <p>설정 파일만 고치면 이미 떠 있는 앱과 메뉴 막대는 목록을 다시 읽지 않습니다. 변경 알림을 보내도, TextInputMenuAgent 를 다시 띄워도 마찬가지입니다. 그 상태에서 메뉴로 구름을 고르면 앞 앱이 "켜지지 않은 소스"로 보고 무시합니다. 전파되는 것은 TIS API 호출뿐이라서, 스크립트는 쓰지 않는 구름 배열 하나를 목록에 같이 써 둔 뒤 <code>TISDisableInputSource</code> 로 끕니다. 끄는 순간 모든 프로세스가 목록 전체를 다시 읽습니다. 이미 꺼져 있는 배열을 끄면 아무 일도 일어나지 않으므로, 반드시 켜져 있는 것을 끕니다.</p>
+      </li>
+      <li class="step">
+        <h3>구름 로마자 제거</h3>
+        <p>구름 입력기에서 기본으로 켜지도록 표시된 배열은 두벌식과 로마자 둘뿐이라, 관리자 에이전트가 구름 입력기를 켜면 macOS 가 로마자까지 같이 켭니다. 로마자는 영문 자판 자리를 ABC 대신 차지해 메뉴 막대에 "로마자"가 뜨고 앱의 입력 소스 전환이 어긋납니다. 스크립트는 이것을 위의 전파용 배열로 쓰면서 끄고, 요청하지 않았는데 켜져 있는 구름 배열이 하나도 남지 않을 때까지 끄기를 되풀이합니다.</p>
+      </li>
+      <li class="step">
+        <h3>쓰지 않는 것</h3>
+        <p><code>TISEnableInputSource</code> API 는 쓰지 않습니다. 이 API 는 서드파티 배열에 대해 System Settings 밖에서는 조용히 무시되거나, 호출한 프로그램 이름으로 "서드파티 입력 방법을 활성화하려고 합니다" 확인 창을 띄웁니다.</p>
+      </li>
+      <li class="step">
+        <h3>스크립트 구조</h3>
+        <p><code>/bin/sh</code>(bash 3.2 POSIX 모드)에서 동작하도록 배열과 프로세스 치환을 쓰지 않고, <code>curl | sh</code> 로 다운로드가 끊겨도 부분 실행되지 않도록 전체를 <code>main()</code> 에 담아 마지막 줄에서 호출합니다.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section class="section section--last" id="refs" aria-labelledby="refs-h">
+    <p class="section-index">09</p>
+    <h2 id="refs-h" class="reveal">참고 · 소스</h2>
+    <div class="refs reveal">
+      <div class="ref-group">
+        <h3>구름 입력기</h3>
+        <ul class="link-list">
+          <li><a href="https://gureum.io/" rel="noopener">gureum.io</a></li>
+          <li><a href="https://github.com/gureum/gureum" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/gureum/gureum/wiki/Help-Install" rel="noopener">설치 도움말</a></li>
+          <li><a href="https://github.com/gureum/gureum/wiki/Help-Preference" rel="noopener">환경설정 도움말</a></li>
+        </ul>
+        <p class="fine">구름 입력기 자체의 ⇧Space 한영 전환은 구름의 "쿼티" 배열(제거 예정)을 추가해야 동작합니다. 이 스크립트는 그 대신 macOS 의 fn/Caps Lock 입력 소스 전환을 씁니다.</p>
+      </div>
+      <div class="ref-group">
+        <h3>이 프로젝트</h3>
+        <ul class="link-list">
+          <li><a href="iMac-setup.sh">iMac-setup.sh</a> <span class="fine">스크립트 원본</span></li>
+          <li><a href="https://github.com/newids/imac-setup" rel="noopener">github.com/newids/imac-setup</a> <span class="fine">저장소</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  </div>
+</div>
+</main>
+
+<footer class="footer">
+  <p><span class="brand-key" aria-hidden="true">⇪</span> imac-setup · macOS Sequoia 15.7 · 구름 입력기 1.13</p>
+  <p class="fine">이 페이지의 명령은 사용자 홈 디렉터리 설정만 바꿉니다. 관리자 권한을 요구하지 않습니다.</p>
+</footer>
+
+<script src="assets/main.js" defer></script>
+</body>
+</html>

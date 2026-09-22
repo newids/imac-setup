@@ -1,6 +1,0 @@
-title: imac-setup
-description: macOS 키보드 실습 환경 자동 설정
-lang: ko
-theme: jekyll-theme-cayman
-show_downloads: false
-include: [iMac-setup.sh]
