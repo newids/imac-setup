@@ -12,8 +12,10 @@
 #   5. zsh 프롬프트                              setup.sh 의 zshrc 를 내장
 #   6. ssh 키, known_hosts, ssh config, git 설정   setup.sh 와 같음. 키는 keys.zip.enc 를 받아 복호화
 #   7. Discord 실행 시 본체 업데이트 건너뛰기      settings.json 에 SKIP_HOST_UPDATE
-#   8. 터미널: Homebrew 프로파일, 글꼴 14, 90x45   기본·시작 프로파일로 지정
-#   9. Claude Code 설치                           같음
+#   8. VS Code 업데이트 확인 끄기                  settings.json 에 update.mode = none
+#   9. 터미널: Homebrew 프로파일, 글꼴 14, 90x45   기본·시작 프로파일로 지정
+#  10. Claude Code 설치                           같음
+#  11. 앱 실행: Discord, VS Code, Chrome           Chrome 은 새 창에 https://codyssey.kr
 #
 # 사용법:
 #   curl -fsSL https://newids.github.io/imac-setup/iMac4newids.sh | sh
@@ -61,7 +63,7 @@ warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 step() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 die()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
-jxa() { osascript -l JavaScript -e "$1" "$2" "${3:-}" 2>/dev/null; }
+jxa() { js="$1"; shift; osascript -l JavaScript -e "$js" "$@" 2>/dev/null; }   # $1=스크립트, 나머지=argv
 
 find_gureum() {
     for d in "$HOME/Library/Input Methods" "/Library/Input Methods"; do
@@ -586,23 +588,35 @@ setup_ssh_and_git() {
 
 DISCORD_SETTINGS="$HOME/Library/Application Support/discord/settings.json"
 
-# 인자: settings.json 경로   출력: ok | already | invalid | error
-DISCORD_JS='
+# JSON 파일의 최상위 키 하나를 정한다. 파일이 없으면 만든다. 8절 VS Code 에서도 쓴다.
+# 인자: <파일> <키> <값(JSON)>   출력: ok | already | invalid | error
+SET_JSON_JS='
 function run(argv) {
     ObjC.import("Foundation");
-    var path = argv[0], fm = $.NSFileManager.defaultManager, obj = {};
+    var path = argv[0], key = argv[1], value = JSON.parse(argv[2]);
+    var fm = $.NSFileManager.defaultManager, obj = {};
     if (fm.fileExistsAtPath(path)) {
         var text = $.NSString.stringWithContentsOfFileEncodingError(path, $.NSUTF8StringEncoding, $());
         try { obj = JSON.parse(text.js); } catch (e) { return "invalid"; }
-        if (!obj || typeof obj !== "object") return "invalid";
+        if (!obj || typeof obj !== "object" || Array.isArray(obj)) return "invalid";
     }
-    if (obj.SKIP_HOST_UPDATE === true) return "already";
-    obj.SKIP_HOST_UPDATE = true;
+    if (JSON.stringify(obj[key]) === JSON.stringify(value)) return "already";
+    obj[key] = value;
     var dir = path.replace(/\/[^\/]*$/, "");
     fm.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(dir, true, $(), $());
     var ok = $(JSON.stringify(obj, null, 2) + "\n").writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, $());
     return ok ? "ok" : "error";
 }'
+
+# $1=파일 $2=키 $3=값(JSON). 결과를 출력하고 파일이 JSON 이 아니거나 쓰지 못하면 경고한다.
+set_json_key() {
+    case "$(jxa "$SET_JSON_JS" "$1" "$2" "$3")" in
+        ok)      info "$(basename "$1") 에 $2 = $3 저장" ;;
+        already) info "$2 = $3 이미 설정됨" ;;
+        invalid) warn "$(basename "$1") 이 JSON 이 아닙니다 (주석이나 끝 쉼표가 있으면 안 됩니다). 직접 확인하세요: $1" ;;
+        *)       warn "$(basename "$1") 을 쓰지 못했습니다: $1" ;;
+    esac
+}
 
 setup_discord() {
     step "7. Discord 실행 시 본체 업데이트 건너뛰기"
@@ -610,15 +624,24 @@ setup_discord() {
         warn "Discord 가 실행 중입니다. 종료한 뒤 이 스크립트를 다시 실행하면 설정합니다"
         return 0
     fi
-    case "$(jxa "$DISCORD_JS" "$DISCORD_SETTINGS")" in
-        ok)      info "settings.json 에 SKIP_HOST_UPDATE = true 추가" ;;
-        already) info "이미 설정됨" ;;
-        invalid) warn "settings.json 이 JSON 이 아닙니다. 직접 확인하세요: $DISCORD_SETTINGS" ;;
-        *)       warn "settings.json 을 쓰지 못했습니다: $DISCORD_SETTINGS" ;;
-    esac
+    set_json_key "$DISCORD_SETTINGS" SKIP_HOST_UPDATE true
 }
 
-# ---------------------------------------------------------------- 8. 터미널
+# ---------------------------------------------------------------- 8. VS Code
+#
+# VS Code 도 실행할 때마다 업데이트를 확인하는데 /Applications/Visual Studio Code.app 이 관리자 소유라
+# 설치하지 못하고 알림만 되풀이한다. 사용자 settings.json 의 update.mode 를 none 으로 두면 확인 자체를
+# 하지 않는다. VS Code 는 설정 파일을 사용자가 설정을 바꿀 때만 다시 쓰므로 실행 중이어도 고쳐도 된다.
+# 다시 실행할 때부터 적용된다.
+
+VSCODE_SETTINGS="$HOME/Library/Application Support/Code/User/settings.json"
+
+setup_vscode() {
+    step "8. VS Code 업데이트 확인 끄기"
+    set_json_key "$VSCODE_SETTINGS" update.mode '"none"'
+}
+
+# ---------------------------------------------------------------- 9. 터미널
 #
 # Terminal.app 프로파일은 com.apple.Terminal "Window Settings" 에 저장되지만 글꼴이 NSFont 아카이브라
 # defaults 로는 못 고친다. Terminal 의 스크립팅 사전(settings set)으로 바꾸면 Terminal 이 저장까지 한다.
@@ -644,7 +667,7 @@ function run(argv) {
 }'
 
 setup_terminal() {
-    step "8. 터미널: $TERMINAL_PROFILE 프로파일, 글꼴 $TERMINAL_FONT_SIZE, ${TERMINAL_COLUMNS}x${TERMINAL_ROWS}"
+    step "9. 터미널: $TERMINAL_PROFILE 프로파일, 글꼴 $TERMINAL_FONT_SIZE, ${TERMINAL_COLUMNS}x${TERMINAL_ROWS}"
     r=$(osascript -l JavaScript -e "$TERMINAL_JS" "$TERMINAL_PROFILE"             "$TERMINAL_FONT_SIZE" "$TERMINAL_COLUMNS" "$TERMINAL_ROWS" 2>/dev/null)
     case "$r" in
         *" $TERMINAL_PROFILE") info "적용: $r"; terminal_ok=1 ;;
@@ -658,10 +681,10 @@ open_terminal_window() {
         && info "새 터미널 창을 열었습니다"
 }
 
-# ---------------------------------------------------------------- 9. Claude Code
+# ---------------------------------------------------------------- 10. Claude Code
 
 setup_claude_code() {
-    step "9. Claude Code"
+    step "10. Claude Code"
     if curl -fsSL https://claude.ai/install.sh | bash; then
         info "Claude Code 설치"
     else
@@ -669,6 +692,35 @@ setup_claude_code() {
     fi
     grep -qF '.local/bin' "$HOME/.zshrc" 2>/dev/null \
         || echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.zshrc"
+}
+
+# ---------------------------------------------------------------- 11. 앱 실행
+#
+# 설정이 끝난 뒤 자주 쓰는 앱을 연다. -g 로 앞에 나오지 않게 열고 마지막에 여는 터미널 창이 앞에 온다.
+# Chrome 은 이미 떠 있으면 --args 가 무시되므로 -n 으로 새 인스턴스에 넘긴다. 새 인스턴스는 실행 중인
+# Chrome 에 인자를 전달하고 끝나므로 결과는 "실행 중인 Chrome 에 새 창"이다. 앱이 없으면 경고만 한다.
+
+CHROME_URL="https://codyssey.kr"
+
+# $1=앱 이름, 나머지=open 에 줄 추가 인자
+launch_app() {
+    name="$1"; shift
+    if open -ga "$name" "$@" 2>/dev/null; then
+        info "$name 실행"
+    else
+        warn "$name 을(를) 열지 못했습니다. 설치되어 있는지 확인하세요"
+    fi
+}
+
+launch_apps() {
+    step "11. 앱 실행: Discord, VS Code, Chrome"
+    launch_app Discord
+    launch_app "Visual Studio Code"
+    if open -gna "Google Chrome" --args --new-window "$CHROME_URL" 2>/dev/null; then
+        info "Google Chrome 새 창: $CHROME_URL"
+    else
+        warn "Google Chrome 을 열지 못했습니다. 설치되어 있는지 확인하세요"
+    fi
 }
 
 # ---------------------------------------------------------------- main
@@ -690,10 +742,12 @@ main() {
     setup_zsh
     setup_ssh_and_git
     setup_discord
+    setup_vscode
     setup_terminal
     setup_claude_code
+    launch_apps
 
-    printf '\n\033[1m완료.\033[0m 키보드·핫 코너·Discord·터미널 설정은 지금 적용되었고 재로그인 후에도 유지됩니다.\n'
+    printf '\n\033[1m완료.\033[0m 키보드·핫 코너·Discord·VS Code·터미널 설정은 지금 적용되었고 재로그인 후에도 유지됩니다.\n'
     printf 'Caps Lock 으로 ABC 와 구름 세벌식 최종 사이를 전환해 보세요. 로그인할 때마다 다시 실행하세요.\n'
     printf '새 터미널 창에서 프롬프트·PATH·%s 프로파일이 적용됩니다.\n\n\tclaude --dangerously-skip-permissions\n\n' "$TERMINAL_PROFILE"
     open_terminal_window
